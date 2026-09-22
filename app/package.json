@@ -23,20 +23,26 @@
       "main.js",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "../runtime/node.exe",
-        "to": "pisotab-runtime/node.exe"
-      },
-      {
-        "from": "../bundle-server",
-        "to": "pisotab-server/server",
-        "filter": [
-          "**/*",
-          "!**/.cache/**"
-        ]
-      },
-      {
+   "extraResources": [
+  {
+    "from": "bundle-server",
+    "to": "pisotab-server/server",
+    "filter": [
+      "**/*"
+    ]
+  },
+  {
+    "from": "../runtime/node.exe",
+    "to": "pisotab-runtime/node.exe"
+  },
+  {
+    "from": "../dashboard",
+    "to": "pisotab-server/dashboard",
+    "filter": [
+      "**/*"
+    ]
+  }
+]
         "from": "../dashboard",
         "to": "pisotab-server/dashboard",
         "filter": [
