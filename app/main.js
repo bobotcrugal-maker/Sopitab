@@ -13,7 +13,7 @@ function paths() {
   if (app.isPackaged) {
     const root = process.resourcesPath;
     return {
-      node: path.join(root, 'pisotab-runtime', 'node.exe'),
+      NODE_PATH: path.join(p.serverDir, 'node_modules'),
       serverDir: path.join(root, 'pisotab-server', 'server'),
       serverJs: path.join(root, 'pisotab-server', 'server', 'server.js'),
       logDir: path.join(app.getPath('userData'), 'logs'),
@@ -43,8 +43,12 @@ function startServer() {
     cwd: p.serverDir,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PISOTAB_PORT: String(PORT), PISOTAB_DATA_DIR: p.dataDir }
-  });
+    env: {
+  ...process.env,
+  PISOTAB_PORT: String(PORT),
+  PISOTAB_DATA_DIR: p.dataDir,
+  NODE_PATH: path.join(p.serverDir, 'node_modules')
+}
   serverProcess.stdout.pipe(out);
   serverProcess.stderr.pipe(out);
   serverProcess.on('error', err => out.write(`SPAWN ERROR: ${err.stack || err}\n`));
