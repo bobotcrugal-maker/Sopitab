@@ -29,7 +29,7 @@
         "to": "pisotab-runtime/node.exe"
       },
       {
-        "from": "../server",
+        "from": "../bundle-server",
         "to": "pisotab-server/server",
         "filter": [
           "**/*",
