@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PisoTab Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>PisoTab</h1>
+    <div class="sub">Local Wi-Fi Rental Dashboard</div>
+  </div>
+  <div id="connection">Connecting…</div>
+</header>
+
+<main>
+  <section class="toolbar">
+    <button id="adminBtn">Admin</button>
+    <button id="refreshBtn">Refresh</button>
+    <span id="summary"></span>
+  </section>
+  <section id="grid" class="grid"></section>
+</main>
+
+<dialog id="adminDialog">
+  <form method="dialog" id="adminForm">
+    <h2>Admin</h2>
+    <input id="pin" type="password" inputmode="numeric" placeholder="Admin PIN" required>
+    <div class="dialog-actions">
+      <button value="cancel">Cancel</button>
+      <button value="ok">Unlock</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

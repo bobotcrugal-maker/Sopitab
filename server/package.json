@@ -1,0 +1,15 @@
+{
+  "name": "pisotab-v02-server",
+  "version": "0.2.0",
+  "private": true,
+  "description": "PisoTab local Wi-Fi rental server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^5.1.0",
+    "ws": "^8.18.2"
+  }
+}

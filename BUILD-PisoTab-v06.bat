@@ -1,0 +1,107 @@
+@echo off
+REM Keep a Command Prompt window open even if this BAT is double-clicked.
+if /i not "%PISOTAB_RUN%"=="1" (
+  set "PISOTAB_RUN=1"
+  start "PisoTab v0.6 Builder" cmd /k call "%~f0"
+  exit /b
+)
+setlocal EnableExtensions EnableDelayedExpansion
+
+cd /d "%~dp0"
+
+echo.
+echo ========================================
+echo PisoTab v0.6 Windows Builder
+echo ========================================
+echo.
+echo This window will stay open if an error occurs.
+echo.
+
+set "NODE_VERSION=22.23.2"
+set "NODE_DIR=%TEMP%\PisoTab-Node-%NODE_VERSION%"
+set "NODE_ZIP=%TEMP%\node-v%NODE_VERSION%-win-x64.zip"
+set "NODE_URL=https://nodejs.org/dist/v%NODE_VERSION%/node-v%NODE_VERSION%-win-x64.zip"
+set "NODEEXE=%NODE_DIR%\node.exe"
+set "NPMCMD=%NODE_DIR%\npm.cmd"
+
+if not exist "runtime" mkdir "runtime"
+
+REM Always make sure the temporary Node.js + npm runtime exists.
+if exist "%NODEEXE%" goto NODE_READY
+
+echo [1/6] Downloading official Node.js %NODE_VERSION% Windows x64...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -UseBasicParsing -Uri '%NODE_URL%' -OutFile '%NODE_ZIP%' } catch { Write-Host $_.Exception.Message; exit 1 }"
+if errorlevel 1 goto FAIL
+
+if exist "%NODE_DIR%" rmdir /s /q "%NODE_DIR%"
+if exist "%TEMP%\PisoTab-NodeExtract" rmdir /s /q "%TEMP%\PisoTab-NodeExtract"
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -LiteralPath '%NODE_ZIP%' -DestinationPath '%TEMP%\PisoTab-NodeExtract' -Force } catch { Write-Host $_.Exception.Message; exit 1 }"
+if errorlevel 1 goto FAIL
+
+move "%TEMP%\PisoTab-NodeExtract\node-v%NODE_VERSION%-win-x64" "%NODE_DIR%" >nul
+if errorlevel 1 goto FAIL
+rmdir /s /q "%TEMP%\PisoTab-NodeExtract" >nul 2>&1
+
+:NODE_READY
+for /f "delims=" %%V in ('"%NODEEXE%" --version 2^>nul') do set "NODE_VER=%%V"
+echo Using Node !NODE_VER!
+if not "!NODE_VER!"=="v%NODE_VERSION%" goto FAIL
+if not exist "%NPMCMD%" goto FAIL
+
+echo.
+echo [2/6] Preparing bundled runtime...
+copy /y "%NODEEXE%" "runtime\node.exe" >nul
+if errorlevel 1 goto FAIL
+
+if not exist "server\node_modules\better-sqlite3" (
+  echo.
+  echo [3/6] Installing server dependencies...
+  cd /d "%~dp0server"
+  "%NPMCMD%" install --omit=dev
+  if errorlevel 1 goto FAIL
+  cd /d "%~dp0"
+) else (
+  echo [3/6] Server dependencies already installed.
+)
+
+cd /d "%~dp0"
+"%NODEEXE%" -e "require('./server/node_modules/better-sqlite3'); console.log('better-sqlite3 OK')"
+if errorlevel 1 goto FAIL
+
+echo.
+echo [4/6] Installing desktop dependencies...
+cd /d "%~dp0app"
+"%NPMCMD%" install
+if errorlevel 1 goto FAIL
+
+echo.
+echo [5/6] Building PisoTab Windows installer...
+"%NPMCMD%" run build
+if errorlevel 1 goto FAIL
+
+if not exist "dist\PisoTab-Dashboard-Setup-0.6.0.exe" goto FAIL
+
+echo.
+echo [6/6] BUILD COMPLETE
+echo.
+echo Installer:
+echo %~dp0app\dist\PisoTab-Dashboard-Setup-0.6.0.exe
+echo.
+echo ========================================
+echo BUILD COMPLETE - SUCCESS
+echo ========================================
+echo.
+pause
+exit /b 0
+
+:FAIL
+echo.
+echo ========================================
+echo BUILD FAILED
+echo ========================================
+echo.
+echo Basahin ang error sa itaas at i-send sa akin ang screenshot.
+echo.
+pause
+exit /b 1
