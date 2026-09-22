@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22.23.2
 
-      - name: Download bundled Node 22 runtime
+      - name: Download bundled Node runtime
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
@@ -25,17 +25,17 @@ jobs:
           $zip = Join-Path $env:RUNNER_TEMP 'node22.zip'
           $dir = Join-Path $env:RUNNER_TEMP 'node22'
 
-          Invoke-WebRequest -Uri $url -OutFile $zip
-          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          Invoke-WebRequest $url -OutFile $zip
+          Expand-Archive $zip $dir -Force
 
-          New-Item -ItemType Directory -Force -Path 'runtime' | Out-Null
+          New-Item -ItemType Directory -Force runtime | Out-Null
 
           Copy-Item `
-            (Join-Path $dir 'node-v22.23.2-win-x64\node.exe') `
-            'runtime\node.exe' `
+            "$dir\node-v22.23.2-win-x64\node.exe" `
+            "runtime\node.exe" `
             -Force
 
-          & 'runtime\node.exe' --version
+          & "runtime\node.exe" --version
 
       - name: Install server dependencies
         working-directory: server
@@ -46,28 +46,40 @@ jobs:
         run: |
           node -e "require('express'); require('ws'); require('better-sqlite3'); console.log('SERVER DEPENDENCIES OK')"
 
-      - name: Prepare bundled server
+      - name: Copy server into app bundle
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
 
-          if (Test-Path 'bundle-server') {
-            Remove-Item 'bundle-server' -Recurse -Force
+          if (Test-Path "app\bundle-server") {
+            Remove-Item "app\bundle-server" -Recurse -Force
           }
 
-          New-Item -ItemType Directory -Force -Path 'bundle-server' | Out-Null
+          New-Item -ItemType Directory -Force "app\bundle-server" | Out-Null
 
-          Copy-Item 'server\server.js' 'bundle-server\server.js' -Force
-          Copy-Item 'server\config.json' 'bundle-server\config.json' -Force
-          Copy-Item 'server\package.json' 'bundle-server\package.json' -Force
-          Copy-Item 'server\node_modules' 'bundle-server\node_modules' -Recurse -Force
+          Copy-Item "server\server.js" "app\bundle-server\server.js"
+          Copy-Item "server\config.json" "app\bundle-server\config.json"
+          Copy-Item "server\package.json" "app\bundle-server\package.json"
 
-          Write-Host "Bundled server contents:"
-          Get-ChildItem 'bundle-server' -Force
-          Write-Host "Node modules:"
-          Get-ChildItem 'bundle-server\node_modules' -Force
+          Copy-Item `
+            "server\node_modules" `
+            "app\bundle-server\node_modules" `
+            -Recurse `
+            -Force
 
-      - name: Install Electron dependencies
+          Write-Host "Checking Express:"
+          if (!(Test-Path "app\bundle-server\node_modules\express")) {
+            throw "Express was not copied!"
+          }
+
+          Write-Host "Checking better-sqlite3:"
+          if (!(Test-Path "app\bundle-server\node_modules\better-sqlite3")) {
+            throw "better-sqlite3 was not copied!"
+          }
+
+          Write-Host "SERVER BUNDLE OK"
+
+      - name: Install Electron
         working-directory: app
         run: npm install
 
@@ -75,19 +87,19 @@ jobs:
         working-directory: app
         run: npm run build
 
-      - name: Verify portable EXE
+      - name: Verify EXE
         shell: powershell
         run: |
-          $exe = 'app\dist\PisoTab-Portable-0.6.0.exe'
+          $exe = "app\dist\PisoTab-Portable-0.6.0.exe"
 
           if (!(Test-Path $exe)) {
-            Write-Error "Portable EXE was not created."
+            throw "PisoTab EXE was not created."
           }
 
-          Write-Host "BUILD SUCCESS:"
+          Write-Host "BUILD SUCCESS"
           Get-Item $exe
 
-      - name: Upload PisoTab portable EXE
+      - name: Upload portable EXE
         uses: actions/upload-artifact@v4
         with:
           name: PisoTab-Portable-v0.6.0
