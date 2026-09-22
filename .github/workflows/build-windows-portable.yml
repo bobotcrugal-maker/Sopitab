@@ -20,6 +20,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+
           $url = 'https://nodejs.org/dist/v22.23.2/node-v22.23.2-win-x64.zip'
           $zip = Join-Path $env:RUNNER_TEMP 'node22.zip'
           $dir = Join-Path $env:RUNNER_TEMP 'node22'
@@ -40,9 +41,31 @@ jobs:
         working-directory: server
         run: npm install --omit=dev
 
-      - name: Verify better-sqlite3
+      - name: Verify server dependencies
         working-directory: server
-        run: node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
+        run: |
+          node -e "require('express'); require('ws'); require('better-sqlite3'); console.log('SERVER DEPENDENCIES OK')"
+
+      - name: Prepare bundled server
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          if (Test-Path 'bundle-server') {
+            Remove-Item 'bundle-server' -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Force -Path 'bundle-server' | Out-Null
+
+          Copy-Item 'server\server.js' 'bundle-server\server.js' -Force
+          Copy-Item 'server\config.json' 'bundle-server\config.json' -Force
+          Copy-Item 'server\package.json' 'bundle-server\package.json' -Force
+          Copy-Item 'server\node_modules' 'bundle-server\node_modules' -Recurse -Force
+
+          Write-Host "Bundled server contents:"
+          Get-ChildItem 'bundle-server' -Force
+          Write-Host "Node modules:"
+          Get-ChildItem 'bundle-server\node_modules' -Force
 
       - name: Install Electron dependencies
         working-directory: app
@@ -51,6 +74,18 @@ jobs:
       - name: Build portable EXE
         working-directory: app
         run: npm run build
+
+      - name: Verify portable EXE
+        shell: powershell
+        run: |
+          $exe = 'app\dist\PisoTab-Portable-0.6.0.exe'
+
+          if (!(Test-Path $exe)) {
+            Write-Error "Portable EXE was not created."
+          }
+
+          Write-Host "BUILD SUCCESS:"
+          Get-Item $exe
 
       - name: Upload PisoTab portable EXE
         uses: actions/upload-artifact@v4
